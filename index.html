@@ -1,0 +1,955 @@
+<!doctype html>
+<html lang="ka">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Minox Tracker</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Minox">
+<meta name="theme-color" content="#0C1017">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+Georgian:wght@400;500;600;700&family=Noto+Serif+Georgian:wght@600;700&display=swap">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<style>
+/* Layout: native-feeling one-column phone app. Large-title header, one scrolling view, fixed tab bar.
+   Signature: the day counter over a 6-month ruler whose phases light up as the days pass. */
+:root{
+  --bg:#0C1017; --surface:#151B26; --surface-2:#1D2533; --line:#263042; --bar:rgba(12,16,23,.88);
+  --ink:#E9EDF5; --ink-2:#8E98AA; --ink-3:#5D677A;
+  --accent:#8497FF; --accent-ink:#0B1020; --accent-soft:#1E2850; --accent-deep:#5B6CD1; --accent-pale:#B4BFFF;
+  --amber:#F2B45C; --amber-soft:#3A2C17;
+  --rose:#F07C86; --rose-soft:#3B1D24;
+  --f-display:"Noto Serif Georgian","Noto Sans Georgian",Georgia,serif;
+  --f-body:"Noto Sans Georgian",-apple-system,"Helvetica Neue",system-ui,sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --r:16px; --tabh:58px;
+  color-scheme:dark;
+}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--f-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+button,input,select,label.btn{font:inherit;touch-action:manipulation}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;opacity:0}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+
+.app{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:6px calc(var(--tabh) + 28px)}
+.view{display:flex;flex-direction:column;gap:18px}
+.top{display:flex;flex-direction:column;gap:2px;padding-top:14px}
+.eyebrow{margin:0;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+h1{margin:0;font-family:var(--f-display);font-weight:700;font-size:34px;line-height:1.15;letter-spacing:-.01em;text-wrap:balance}
+h2.sec{margin:6px 0 -6px;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-2)}
+h3{margin:0;font-family:var(--f-display);font-size:22px;font-weight:700;line-height:1.25;text-wrap:balance}
+p{margin:0}
+.muted{color:var(--ink-2)}
+
+/* banners */
+.banner{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:14px;background:var(--surface);border:1px solid var(--line);font-size:13.5px;color:var(--ink-2)}
+.banner svg{width:20px;height:20px;color:var(--accent);margin-top:1px}
+.banner p{flex:1;min-width:0}
+.banner b{color:var(--ink);font-weight:600}
+.banner .x{appearance:none;border:0;background:none;color:var(--ink-3);padding:0 2px;font-size:20px;line-height:1}
+.banner.warn svg{color:var(--rose)}
+
+/* counter + ruler */
+.counter{display:flex;flex-direction:column;gap:6px;padding-top:4px}
+.c-row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.c-main{display:flex;flex-direction:column}
+.c-label{font-size:14px;color:var(--ink-2);font-weight:500}
+.c-day{font-family:var(--f-num);font-weight:500;font-size:88px;line-height:.92;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.c-meta{display:flex;flex-direction:column;align-items:flex-end;gap:2px;padding-bottom:8px;font-size:13px;color:var(--ink-2);text-align:right}
+.c-meta .num{color:var(--ink);font-size:15px}
+.ruler{position:relative;height:46px;margin-top:10px}
+.track{position:absolute;left:0;right:0;top:12px;height:10px;border-radius:5px;overflow:hidden;display:flex;gap:2px}
+.track.dim{opacity:.28}
+.band{height:100%;flex:none}
+.b1{background:var(--amber)}.b2{background:var(--accent-deep)}.b3{background:var(--accent-pale)}.b4{background:var(--ink-2)}
+.mark{position:absolute;top:5px;width:3px;height:24px;margin-left:-1.5px;border-radius:2px;background:var(--ink);box-shadow:0 0 0 3px var(--bg)}
+.ticks{position:absolute;left:0;right:0;top:28px;height:18px}
+.tick{position:absolute;top:0;transform:translateX(-50%);font-family:var(--f-num);font-size:10.5px;color:var(--ink-3);white-space:nowrap}
+.tick:first-child{transform:none}
+.tick:last-child{transform:translateX(-100%)}
+.phase{display:flex;flex-direction:column;gap:3px;padding-top:4px}
+.phase-name{display:flex;align-items:center;gap:8px;font-weight:600;font-size:14.5px}
+.phase-name i{width:10px;height:10px;border-radius:3px;flex:none}
+.phase-name span{font-weight:400;font-size:12.5px;color:var(--ink-3)}
+.phase-note{font-size:13.5px;color:var(--ink-2);max-width:46ch}
+
+/* doses */
+.doses{display:grid;grid-template-columns:repeat(var(--n,2),minmax(0,1fr));gap:10px}
+.dose{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:var(--r);padding:14px;text-align:left;display:flex;flex-direction:column;gap:1px;min-height:118px;position:relative;transition:background .18s,border-color .18s,transform .12s,color .18s}
+.dose:active{transform:scale(.97)}
+.dose .ico{margin-bottom:auto;color:var(--ink-2);padding-bottom:12px}
+.dose .ico svg{width:26px;height:26px}
+.dose .nm{font-weight:600;font-size:17px}
+.dose .sb{font-size:12.5px;color:var(--ink-2)}
+.dose[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.dose[aria-pressed="true"] .ico,.dose[aria-pressed="true"] .sb{color:var(--accent-ink)}
+.dose[aria-pressed="true"] .sb{opacity:.75}
+.doses.sm .dose{min-height:92px}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-block:1px solid var(--line)}
+.stats>div{display:flex;flex-direction:column;gap:1px;padding:13px 0 11px}
+.stats>div+div{border-left:1px solid var(--line);padding-left:14px}
+.stats .num{font-size:22px;font-weight:500;line-height:1.2}
+.stats .lbl{font-size:12px;color:var(--ink-2)}
+
+/* nudge row */
+.nudge{appearance:none;display:flex;align-items:center;gap:12px;width:100%;padding:13px 14px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);text-align:left}
+.nudge .ni{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--surface-2);color:var(--ink-2);flex:none}
+.nudge .nt{flex:1;min-width:0;display:flex;flex-direction:column}
+.nudge .nt b{font-weight:600}
+.nudge .nt span{font-size:13px;color:var(--ink-2)}
+.nudge .chev{color:var(--ink-3);width:18px;height:18px}
+.nudge.due{border-color:color-mix(in srgb,var(--amber) 45%,var(--line))}
+.nudge.due .ni{background:var(--amber-soft);color:var(--amber)}
+
+/* buttons, fields */
+.btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 16px;border-radius:13px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font-weight:600;font-size:15px;text-decoration:none;position:relative}
+.btn svg{width:20px;height:20px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{background:var(--rose-soft);border-color:transparent;color:var(--rose)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--ink-2)}
+.btn.block{width:100%}
+.btn:disabled{opacity:.4;cursor:default}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field{display:flex;flex-direction:column;gap:7px}
+.flabel{font-size:13px;color:var(--ink-2);font-weight:500}
+input[type=date],select{appearance:none;-webkit-appearance:none;width:100%;min-height:46px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font-size:16px;font-family:var(--f-body)}
+input[type=date]{font-family:var(--f-num)}
+input[type=date]::-webkit-date-and-time-value{text-align:left}
+.seg{display:flex;gap:3px;padding:3px;border-radius:13px;background:var(--surface-2)}
+.seg button{flex:1;min-width:0;appearance:none;border:0;background:transparent;color:var(--ink-2);font-size:14px;font-weight:500;min-height:38px;padding:0 8px;border-radius:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--ink)}
+
+/* calendar */
+.cal-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.cal-head h2{margin:0;font-family:var(--f-display);font-size:20px;font-weight:700}
+.icon-btn{appearance:none;width:42px;height:42px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);display:grid;place-items:center}
+.icon-btn:disabled{opacity:.3}
+.cal{display:flex;flex-direction:column;gap:6px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.wd{font-size:11.5px;color:var(--ink-3);text-align:center;padding:2px 0}
+.cd{appearance:none;position:relative;aspect-ratio:1;max-width:100%;border:0;border-radius:11px;background:transparent;color:var(--ink);display:flex;align-items:center;justify-content:center;font-family:var(--f-num);font-size:14px;padding:0}
+.cd.full{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.cd.part{background:var(--accent-soft)}
+.cd.miss::after{content:"";position:absolute;bottom:6px;left:50%;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:var(--rose)}
+.cd.off{color:var(--ink-3)}
+.cd.today{box-shadow:inset 0 0 0 1.5px var(--ink)}
+.cd .pd{position:absolute;top:5px;right:5px;width:5px;height:5px;border-radius:50%;background:var(--amber)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:4px;display:inline-block}
+.lg-full{background:var(--accent)}.lg-part{background:var(--accent-soft)}
+.lg-miss{background:none;position:relative}.lg-miss::after{content:"";position:absolute;inset:4px;border-radius:50%;background:var(--rose)}
+.lg-ph{background:none;position:relative}.lg-ph::after{content:"";position:absolute;inset:3.5px;border-radius:50%;background:var(--amber)}
+.month-sum{display:flex;justify-content:space-between;align-items:baseline;padding:12px 0;border-block:1px solid var(--line);font-size:13.5px;color:var(--ink-2)}
+.month-sum .num{color:var(--ink);font-size:16px}
+
+/* photos */
+.ph-actions{display:grid;grid-template-columns:1.4fr 1fr;gap:10px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.thumb{appearance:none;position:relative;padding:0;border:0;border-radius:10px;overflow:hidden;aspect-ratio:3/4;max-width:100%;background:var(--surface-2)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb span{position:absolute;left:0;right:0;bottom:0;padding:16px 7px 5px;font-family:var(--f-num);font-size:11px;color:#fff;text-align:left;background:linear-gradient(transparent,rgba(0,0,0,.65))}
+.tips{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.tips li{padding:10px 0;border-bottom:1px solid var(--line);font-size:14px;color:var(--ink-2);display:flex;gap:10px}
+.tips li b{font-family:var(--f-num);font-weight:500;color:var(--ink-3);font-size:12px;padding-top:2px}
+.empty{display:flex;flex-direction:column;gap:12px;padding:6px 0}
+
+/* compare */
+.cmp{position:relative;aspect-ratio:3/4;max-width:100%;max-height:58vh;margin:0 auto;width:100%;border-radius:14px;overflow:hidden;background:var(--surface-2);touch-action:none;user-select:none;-webkit-user-select:none}
+.cmp img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
+.cmp img.top{clip-path:inset(0 calc(100% - var(--p,50%)) 0 0)}
+.cline{position:absolute;top:0;bottom:0;left:var(--p,50%);width:2px;margin-left:-1px;background:#fff;box-shadow:0 0 6px rgba(0,0,0,.5)}
+.cline::after{content:"";position:absolute;top:50%;left:50%;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.4)}
+.tag{position:absolute;top:10px;padding:3px 8px;border-radius:7px;font-family:var(--f-num);font-size:11.5px;color:#fff;background:rgba(0,0,0,.55)}
+.tag.l{left:10px}.tag.r{right:10px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.pick{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pick label{display:flex;flex-direction:column;gap:6px;min-width:0}
+
+/* viewer */
+.viewer{border-radius:14px;overflow:hidden;background:var(--surface-2);display:grid;place-items:center}
+.viewer img{display:block;max-height:58vh;width:auto;max-width:100%;object-fit:contain}
+.vmeta{display:flex;flex-direction:column;gap:2px}
+.vmeta b{font-family:var(--f-num);font-weight:500;font-size:18px}
+.vmeta span{font-size:13.5px;color:var(--ink-2)}
+
+/* settings */
+.group{display:flex;flex-direction:column;border-radius:var(--r);background:var(--surface);border:1px solid var(--line);overflow:hidden}
+.item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;min-height:54px;color:var(--ink);background:none;border:0;text-align:left;width:100%;position:relative;font-size:15px}
+.item+.item{border-top:1px solid var(--line)}
+.item.col{flex-direction:column;align-items:stretch;gap:8px}
+.item .sub{font-size:12.5px;color:var(--ink-2)}
+.item .chev{color:var(--ink-3);width:18px;height:18px}
+.item.link{cursor:pointer}
+.item.link:disabled,.item.link[aria-disabled="true"]{opacity:.45;cursor:default}
+.item.danger{color:var(--rose);justify-content:flex-start}
+.seg.sm{width:132px;flex:none}
+.foot{font-size:12.5px;color:var(--ink-3);padding:0 2px}
+.steps{margin:0;padding:0;list-style:none;counter-reset:s;display:flex;flex-direction:column}
+.steps li{counter-increment:s;display:flex;gap:12px;align-items:flex-start;padding:11px 14px;font-size:14px}
+.steps li+li{border-top:1px solid var(--line)}
+.steps li::before{content:counter(s);font-family:var(--f-num);font-size:12px;color:var(--accent);width:20px;height:20px;border-radius:6px;background:var(--accent-soft);display:grid;place-items:center;flex:none;margin-top:1px}
+.steps svg{width:17px;height:17px;vertical-align:-3px;color:var(--accent)}
+
+/* tab bar */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--bar);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:max(6px,env(safe-area-inset-left,0px));padding-right:max(6px,env(safe-area-inset-right,0px))}
+.tabs-in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));height:var(--tabh)}
+.tab{appearance:none;border:0;background:none;color:var(--ink-3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10.5px;font-weight:500;padding:0;min-width:0}
+.tab span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tab[aria-current="page"]{color:var(--accent)}
+
+/* sheet */
+.scrim{position:fixed;inset:0;z-index:40;background:rgba(3,5,9,.62);opacity:0;transition:opacity .22s}
+.scrim.on{opacity:1}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;max-height:90vh;max-height:90dvh;overflow-y:auto;overscroll-behavior:contain;background:var(--surface);border-top:1px solid var(--line);border-radius:22px 22px 0 0;padding:8px max(16px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));transform:translateY(102%);transition:transform .28s cubic-bezier(.2,.8,.2,1)}
+.sheet.on{transform:none}
+.sheet-in{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.grab{width:38px;height:5px;border-radius:3px;background:var(--line);margin:0 auto}
+.sheet .seg{background:var(--surface-2)}
+
+.toast{position:fixed;left:50%;bottom:calc(var(--tabh) + env(safe-area-inset-bottom,0px) + 14px);transform:translate(-50%,8px);z-index:60;max-width:calc(100% - 32px);padding:10px 16px;border-radius:12px;background:var(--ink);color:var(--bg);font-size:14px;font-weight:500;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important}}
+@media (min-width:600px){.c-day{font-size:104px}}
+</style>
+
+<div class="app">
+  <!-- TODAY -->
+  <section class="view" id="v-today" aria-labelledby="h-today">
+    <header class="top"><p class="eyebrow" id="t-date">&nbsp;</p><h1 id="h-today">დღეს</h1></header>
+    <div class="banner" id="preview-note" hidden></div>
+    <div class="banner warn" id="store-warn" hidden></div>
+    <div class="banner" id="install-hint" hidden></div>
+
+    <div class="counter">
+      <div class="c-row">
+        <div class="c-main"><span class="c-label" id="c-label">დღე</span><span class="c-day" id="c-day">1</span></div>
+        <div class="c-meta"><span id="c-week">კვირა <span class="num">1</span></span><span id="c-start"></span></div>
+      </div>
+      <div class="ruler" id="ruler" aria-hidden="true"></div>
+      <div class="phase"><div class="phase-name" id="ph-name"></div><p class="phase-note" id="ph-note"></p></div>
+    </div>
+
+    <h2 class="sec">დოზები</h2>
+    <div class="doses" id="doses"></div>
+    <div class="stats" id="stats"></div>
+    <button class="nudge" id="nudge" data-act="nudge"></button>
+  </section>
+
+  <!-- CALENDAR -->
+  <section class="view" id="v-cal" aria-labelledby="h-cal" hidden>
+    <header class="top"><p class="eyebrow">ისტორია</p><h1 id="h-cal">კალენდარი</h1></header>
+    <div class="cal-head">
+      <button class="icon-btn" data-act="cal-prev" id="cal-prev" aria-label="წინა თვე"></button>
+      <h2 id="cal-title"></h2>
+      <button class="icon-btn" data-act="cal-next" id="cal-next" aria-label="შემდეგი თვე"></button>
+    </div>
+    <div class="cal">
+      <div class="cal-grid" id="cal-wd"></div>
+      <div class="cal-grid" id="cal-days"></div>
+    </div>
+    <div class="month-sum" id="month-sum"></div>
+    <div class="legend">
+      <span><i class="lg-full"></i>სრული</span><span><i class="lg-part"></i>ნაწილობრივ</span><span><i class="lg-miss"></i>გამოტოვებული</span><span><i class="lg-ph"></i>ფოტო</span>
+    </div>
+    <p class="muted" style="font-size:13.5px">დააჭირე რომელიმე დღეს, რომ გამოტოვებული დოზა მონიშნო ან იმ დღის ფოტოები ნახო.</p>
+  </section>
+
+  <!-- PHOTOS -->
+  <section class="view" id="v-photos" aria-labelledby="h-ph" hidden>
+    <header class="top"><p class="eyebrow">პროგრესი</p><h1 id="h-ph">ფოტოები</h1></header>
+    <div class="ph-actions">
+      <button class="btn primary" data-act="add"></button>
+      <button class="btn" data-act="compare" id="ph-compare"></button>
+    </div>
+    <div class="seg" id="ph-filter"></div>
+    <div class="grid" id="ph-grid"></div>
+    <div class="empty" id="ph-empty">
+      <p class="muted">აქ ჯერ ფოტო არ არის. საწყისი ფოტო ახლავე გადაიღე: 4–6 თვის შემდეგ ზუსტად ამას შეადარებ.</p>
+      <ul class="tips">
+        <li><b>01</b>ყოველ ჯერზე იგივე ადგილი და სინათლე</li>
+        <li><b>02</b>მშრალი თმა, ერთნაირად დავარცხნილი</li>
+        <li><b>03</b>ტელეფონი ერთ სიმაღლეზე და ერთ მანძილზე</li>
+        <li><b>04</b>სამი კუთხე: შუბლის ხაზი, თხემი, საფეთქლები</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="view" id="v-set" aria-labelledby="h-set" hidden>
+    <header class="top"><p class="eyebrow">Minox</p><h1 id="h-set">პარამეტრები</h1></header>
+    <div class="group">
+      <div class="item"><label for="s-start">დაწყების თარიღი</label><input type="date" id="s-start" style="width:auto;min-width:0;max-width:56%"></div>
+      <div class="item"><span>დოზა დღეში</span><div class="seg sm" id="s-per"><button data-act="per" data-v="1">1</button><button data-act="per" data-v="2">2</button></div></div>
+    </div>
+
+    <h2 class="sec">სარეზერვო ასლი</h2>
+    <div class="group">
+      <button class="item link" data-act="export" id="s-export"><span>ასლის შენახვა<br><span class="sub">ყველა ჩანაწერი და ფოტო, ერთ ფაილში</span></span></button>
+      <label class="item link" id="s-import-l"><span>ასლიდან აღდგენა<br><span class="sub">აირჩიე ადრე შენახული ფაილი</span></span><input type="file" id="s-import" accept=".json,application/json" class="vh"></label>
+    </div>
+    <p class="foot" id="backup-note">მონაცემები მხოლოდ ამ ტელეფონზე ინახება. თვეში ერთხელ შეინახე ასლი Files-ში ან iCloud Drive-ში.</p>
+
+    <h2 class="sec">ტელეფონზე აპად დაყენება</h2>
+    <div class="group">
+      <ol class="steps" id="install-steps"></ol>
+    </div>
+
+    <h2 class="sec">მონაცემები</h2>
+    <div class="group">
+      <button class="item danger" data-act="reset">ყველა მონაცემის წაშლა</button>
+    </div>
+    <p class="foot">Minox მხოლოდ ჩანაწერებისთვისაა და სამედიცინო რჩევას არ იძლევა. დოზასა და გვერდით ეფექტებზე ექიმს ან ფარმაცევტს ჰკითხე.</p>
+  </section>
+</div>
+
+<nav class="tabs" aria-label="მთავარი მენიუ">
+  <div class="tabs-in" id="tabs">
+    <button class="tab" data-act="tab" data-v="today" aria-current="page"><i data-ico="drop"></i><span>დღეს</span></button>
+    <button class="tab" data-act="tab" data-v="cal"><i data-ico="cal"></i><span>კალენდარი</span></button>
+    <button class="tab" data-act="tab" data-v="photos"><i data-ico="photo"></i><span>ფოტოები</span></button>
+    <button class="tab" data-act="tab" data-v="set"><i data-ico="sliders"></i><span>პარამეტრები</span></button>
+  </div>
+</nav>
+
+<div class="scrim" id="scrim" hidden></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" hidden><div class="sheet-in" id="sheet-in"></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+
+/* ---------- icons ---------- */
+const I = {
+  drop:'<svg viewBox="0 0 24 24"><path d="M12 3.5s6 6.4 6 10.6a6 6 0 0 1-12 0C6 9.9 12 3.5 12 3.5z"/></svg>',
+  sun:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/></svg>',
+  moon:'<svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>',
+  check:'<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  cal:'<svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="16" rx="3"/><path d="M3.5 9.5h17M8 2.5v4M16 2.5v4M8 13.5h2M14 13.5h2M8 17h2"/></svg>',
+  photo:'<svg viewBox="0 0 24 24"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.8l1.4-2h4.6l1.4 2h1.8A2.5 2.5 0 0 1 20 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5z"/><circle cx="12" cy="13" r="3.5"/></svg>',
+  sliders:'<svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>',
+  chev:'<svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>',
+  chevL:'<svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>',
+  share:'<svg viewBox="0 0 24 24"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M7 10.5H6A1.5 1.5 0 0 0 4.5 12v7.5A1.5 1.5 0 0 0 6 21h12a1.5 1.5 0 0 0 1.5-1.5V12a1.5 1.5 0 0 0-1.5-1.5h-1"/></svg>',
+  split:'<svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M12 2.5v19"/></svg>',
+  plus:'<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+  info:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8h.01"/></svg>',
+  add:'<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M12 8.5v7M8.5 12h7"/></svg>'
+};
+
+/* ---------- dates ---------- */
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parse = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const today = () => ymd(new Date());
+const addDays = (s, n) => { const d = parse(s); d.setDate(d.getDate() + n); return ymd(d); };
+const diffDays = (a, b) => Math.round((parse(b) - parse(a)) / 86400000); // b minus a
+const isYmd = s => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
+const MONTHS = ['იანვარი','თებერვალი','მარტი','აპრილი','მაისი','ივნისი','ივლისი','აგვისტო','სექტემბერი','ოქტომბერი','ნოემბერი','დეკემბერი'];
+const MON_S = ['იან','თებ','მარ','აპრ','მაი','ივნ','ივლ','აგვ','სექ','ოქტ','ნოე','დეკ'];
+const WEEKDAYS = ['კვირა','ორშაბათი','სამშაბათი','ოთხშაბათი','ხუთშაბათი','პარასკევი','შაბათი'];
+const WD_S = ['ორ','სა','ოთ','ხუ','პა','შა','კვ'];
+const fmtDate = s => { const d = parse(s); return `${d.getDate()} ${MONTHS[d.getMonth()]}`; };
+const fmtShort = s => { const d = parse(s); return `${d.getDate()} ${MON_S[d.getMonth()]}`; };
+const nowTime = () => { const d = new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const agoText = n => n <= 0 ? 'დღეს' : n === 1 ? 'გუშინ' : `${n} დღის წინ`;
+
+const ANG = { front:'შუბლის ხაზი', crown:'თხემი', side:'საფეთქლები' };
+const ANG_S = { front:'შუბლი', crown:'თხემი', side:'საფეთქლები' };
+const ANG_KEYS = ['front', 'crown', 'side'];
+
+const PHASES = [
+  { from:1, to:56, cls:'b1', name:'პირველი 8 კვირა', span:'კვ. 1–8', note:'ზოგს ამ პერიოდში დროებითი ცვენა აქვს. მთავარია, დოზები არ გამოტოვო.' },
+  { from:57, to:120, cls:'b2', name:'პირველი ნიშნები', span:'თვე 2–4', note:'პირველი ცვლილებები ჩვეულებრივ 2–4 თვეში ჩნდება. შეადარე ფოტოებით, არა სარკეში.' },
+  { from:121, to:180, cls:'b3', name:'შეფასების დრო', span:'თვე 4–6', note:'შეადარე ახალი ფოტო პირველს, იმავე კუთხიდან და სინათლეზე.' },
+  { from:181, to:Infinity, cls:'b4', name:'შენარჩუნება', span:'თვე 6+', note:'მიღწეული შედეგი რეგულარული გამოყენებით ნარჩუნდება.' }
+];
+
+/* ---------- environment ---------- */
+let inFrame = false;
+try { inFrame = window.self !== window.top; } catch (e) { inFrame = true; }
+const standalone = navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+
+/* ---------- storage (IndexedDB, memory fallback) ---------- */
+let idb = null;
+const mem = { kv:new Map(), doses:new Map(), photos:new Map() };
+let memId = 1;
+function openDB() {
+  return new Promise(res => {
+    try {
+      const req = indexedDB.open('minox', 1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
+        if (!db.objectStoreNames.contains('doses')) db.createObjectStore('doses');
+        if (!db.objectStoreNames.contains('photos')) db.createObjectStore('photos', { keyPath:'id', autoIncrement:true });
+      };
+      req.onsuccess = () => res(req.result);
+      req.onerror = () => res(null);
+      req.onblocked = () => res(null);
+    } catch (e) { res(null); }
+  });
+}
+function tx(name, mode, fn) {
+  return new Promise((res, rej) => {
+    let t, r;
+    try { t = idb.transaction(name, mode); r = fn(t.objectStore(name)); } catch (e) { rej(e); return; }
+    t.oncomplete = () => res(r ? r.result : undefined);
+    t.onerror = () => rej(t.error);
+    t.onabort = () => rej(t.error);
+  });
+}
+const store = {
+  async entries(name) {
+    if (!idb) return Array.from(mem[name].entries());
+    return new Promise((res, rej) => {
+      const out = [];
+      const t = idb.transaction(name, 'readonly');
+      const c = t.objectStore(name).openCursor();
+      c.onsuccess = () => { const cur = c.result; if (cur) { out.push([cur.key, cur.value]); cur.continue(); } };
+      t.oncomplete = () => res(out);
+      t.onerror = () => rej(t.error);
+    });
+  },
+  async put(name, val, key) {
+    if (!idb) {
+      if (name === 'photos') { const id = memId++; mem.photos.set(id, Object.assign({}, val, { id })); return id; }
+      mem[name].set(key, val); return key;
+    }
+    return tx(name, 'readwrite', os => key === undefined ? os.put(val) : os.put(val, key));
+  },
+  async del(name, key) { if (!idb) { mem[name].delete(key); return; } return tx(name, 'readwrite', os => os.delete(key)); },
+  async clear(name) { if (!idb) { mem[name].clear(); return; } return tx(name, 'readwrite', os => os.clear()); }
+};
+
+/* ---------- state ---------- */
+const S = { settings:{ startDate:null, perDay:2, hintDismissed:false }, doses:{}, photos:[] };
+let view = 'today';
+let phFilter = 'all';
+let addAngle = 'front';
+const cmp = { angle:null, a:null, b:null };
+const now0 = new Date();
+const cal = { y:now0.getFullYear(), m:now0.getMonth() };
+let sheetCtx = null;
+let obPer = 2;
+
+const slots = () => S.settings.perDay === 2 ? ['m', 'e'] : ['m'];
+const slotLabel = k => S.settings.perDay === 2 ? (k === 'm' ? 'დილა' : 'საღამო') : 'დოზა';
+const startDate = () => S.settings.startDate || today();
+const dayN = ds => diffDays(startDate(), ds) + 1;
+const dayLabel = ds => { const n = dayN(ds); return n <= 0 ? 'დაწყებამდე' : `დღე ${n}`; };
+function dayState(ds) {
+  const r = S.doses[ds]; const sl = slots();
+  const n = sl.filter(k => r && r[k]).length;
+  return n === 0 ? 'none' : n === sl.length ? 'full' : 'part';
+}
+function streak() {
+  if (!S.settings.startDate) return 0;
+  const st = S.settings.startDate; let d = today(); let n = 0;
+  if (dayState(d) !== 'full') d = addDays(d, -1);
+  while (diffDays(st, d) >= 0 && dayState(d) === 'full') { n++; d = addDays(d, -1); }
+  return n;
+}
+function adherence() {
+  if (!S.settings.startDate) return null;
+  const st = S.settings.startDate, t = today(), sl = slots();
+  let from = addDays(t, -29); if (diffDays(st, from) < 0) from = st;
+  let exp = 0, got = 0;
+  for (let d = from; diffDays(d, t) >= 0; d = addDays(d, 1)) {
+    if (d === t && dayState(d) !== 'full') continue;
+    exp += sl.length; const r = S.doses[d]; got += sl.filter(k => r && r[k]).length;
+  }
+  return exp ? Math.round(got / exp * 100) : null;
+}
+
+/* ---------- object URLs ---------- */
+const urls = new Map();
+function urlOf(p, kind) {
+  let u = urls.get(p.id); if (!u) { u = {}; urls.set(p.id, u); }
+  if (!u[kind]) u[kind] = URL.createObjectURL(kind === 't' ? (p.thumb || p.blob) : p.blob);
+  return u[kind];
+}
+function dropURL(id) { const u = urls.get(id); if (u) { if (u.t) URL.revokeObjectURL(u.t); if (u.f) URL.revokeObjectURL(u.f); urls.delete(id); } }
+
+/* ---------- toast ---------- */
+let toastT = 0;
+function toast(msg) {
+  const el = $('#toast'); el.textContent = msg; el.classList.add('on');
+  clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), 2200);
+}
+
+/* ---------- render: today ---------- */
+function renderToday() {
+  const t = today(), st = startDate(), n = diffDays(st, t) + 1, d = parse(t);
+  $('#t-date').textContent = `${WEEKDAYS[d.getDay()]}, ${fmtDate(t)}`;
+  if (n >= 1) {
+    $('#c-label').textContent = 'დღე';
+    $('#c-day').textContent = n;
+    $('#c-week').innerHTML = `კვირა <span class="num">${Math.ceil(n / 7)}</span>`;
+  } else {
+    $('#c-label').textContent = 'დაწყებამდე დარჩა';
+    $('#c-day').textContent = 1 - n;
+    $('#c-week').textContent = '';
+  }
+  const sd = parse(st);
+  $('#c-start').textContent = `დაწყება ${fmtShort(st)}${sd.getFullYear() !== d.getFullYear() ? ' ' + sd.getFullYear() : ''}`;
+  renderRuler(Math.max(n, 0));
+  const ph = PHASES.find(p => n >= p.from && n <= p.to) || PHASES[0];
+  $('#ph-name').innerHTML = `<i class="${ph.cls}"></i>${ph.name}<span>${ph.span}</span>`;
+  $('#ph-note').textContent = ph.note;
+
+  const sl = slots(); const box = $('#doses');
+  box.style.setProperty('--n', sl.length);
+  box.innerHTML = sl.map(k => doseTile(t, k)).join('');
+
+  const sk = streak(), ad = adherence();
+  $('#stats').innerHTML =
+    `<div><span class="num">${sk}</span><span class="lbl">დღე ზედიზედ</span></div>` +
+    `<div><span class="num">${ad == null ? '—' : ad + '%'}</span><span class="lbl">ბოლო 30 დღე</span></div>` +
+    `<div><span class="num">${S.photos.length}</span><span class="lbl">ფოტო</span></div>`;
+
+  const last = S.photos.reduce((m, p) => (!m || p.date > m) ? p.date : m, null);
+  const nb = $('#nudge'); let due = false, title, sub;
+  if (!last) { due = true; title = 'საწყისი ფოტო'; sub = 'გადაიღე ახლა, რომ თვეების შემდეგ შეადარო.'; }
+  else {
+    const ago = diffDays(last, t);
+    if (ago >= 14) { due = true; title = 'ახალი ფოტოს დროა'; sub = `ბოლო ფოტო ${agoText(ago)}.`; }
+    else { title = 'პროგრესის ფოტოები'; sub = `ბოლო: ${agoText(ago)}. შემდეგი ${14 - ago} დღეში.`; }
+  }
+  nb.className = 'nudge' + (due ? ' due' : '');
+  nb.dataset.due = due ? '1' : '';
+  nb.innerHTML = `<span class="ni">${I.photo}</span><span class="nt"><b>${title}</b><span>${sub}</span></span><span class="chev">${I.chev}</span>`;
+
+  const hint = $('#install-hint');
+  hint.hidden = inFrame || standalone || S.settings.hintDismissed;
+  if (!hint.hidden) hint.innerHTML = `${I.share}<p><b>დააყენე აპად.</b> Safari-ში დააჭირე გაზიარების ღილაკს და აირჩიე „Add to Home Screen“.</p><button class="x" data-act="hint-x" aria-label="დახურვა">×</button>`;
+}
+function doseTile(ds, k) {
+  const r = S.doses[ds] || {}, v = r[k], isToday = ds === today();
+  const ico = v ? I.check : (S.settings.perDay === 2 ? (k === 'm' ? I.sun : I.moon) : I.drop);
+  const sub = v ? (v === '~' ? 'მონიშნულია' : `მიღებულია <span class="num">${v}</span>`) : (isToday ? 'შეეხე, როცა მიიღებ' : 'არ არის მონიშნული');
+  return `<button class="dose" data-act="dose" data-date="${ds}" data-slot="${k}" aria-pressed="${v ? 'true' : 'false'}"><span class="ico">${ico}</span><span class="nm">${slotLabel(k)}</span><span class="sb">${sub}</span></button>`;
+}
+function renderRuler(n) {
+  const D = Math.max(180, Math.ceil(n / 30) * 30);
+  const bands = [[0, 56, 'b1'], [56, 120, 'b2'], [120, 180, 'b3'], [180, D, 'b4']].filter(b => b[1] > b[0]);
+  const seg = bands.map(([a, b, c]) => `<i class="band ${c}" style="width:calc(${(b - a) / D * 100}% - 2px)"></i>`).join('');
+  const pos = Math.min(n, D) / D * 100;
+  let ticks = ''; const step = D > 360 ? 60 : 30;
+  for (let x = 0; x <= D; x += step) ticks += `<span class="tick" style="left:${x / D * 100}%">${x === D ? (x / 30) + ' თვე' : x / 30}</span>`;
+  $('#ruler').innerHTML = `<div class="track dim">${seg}</div><div class="track" style="clip-path:inset(0 ${100 - pos}% 0 0)">${seg}</div><span class="mark" style="left:${pos}%"></span><div class="ticks">${ticks}</div>`;
+}
+
+/* ---------- render: calendar ---------- */
+function renderCal() {
+  const { y, m } = cal, t = today(), st = S.settings.startDate;
+  $('#cal-title').textContent = `${MONTHS[m]} ${y}`;
+  const tt = parse(t);
+  $('#cal-next').disabled = y > tt.getFullYear() || (y === tt.getFullYear() && m >= tt.getMonth());
+  $('#cal-wd').innerHTML = WD_S.map(w => `<span class="wd">${w}</span>`).join('');
+  const first = new Date(y, m, 1), offset = (first.getDay() + 6) % 7, days = new Date(y, m + 1, 0).getDate();
+  const phDates = new Set(S.photos.map(p => p.date));
+  let html = '', full = 0, counted = 0;
+  for (let i = 0; i < offset; i++) html += '<span></span>';
+  for (let d = 1; d <= days; d++) {
+    const ds = `${y}-${pad(m + 1)}-${pad(d)}`;
+    const future = diffDays(t, ds) > 0, before = !st || diffDays(st, ds) < 0;
+    let cls = 'cd';
+    const active = !future && !before;
+    if (active) {
+      const s = dayState(ds);
+      if (s === 'full') cls += ' full'; else if (s === 'part') cls += ' part'; else if (ds !== t) cls += ' miss';
+      if (ds !== t || s === 'full') { counted++; if (s === 'full') full++; }
+    } else cls += ' off';
+    if (ds === t) cls += ' today';
+    const pd = phDates.has(ds) ? '<i class="pd" aria-hidden="true"></i>' : '';
+    const label = `${d} ${MONTHS[m]}`;
+    html += (active || phDates.has(ds))
+      ? `<button class="${cls}" data-act="day" data-date="${ds}" aria-label="${label}">${d}${pd}</button>`
+      : `<span class="${cls}">${d}</span>`;
+  }
+  $('#cal-days').innerHTML = html;
+  $('#month-sum').innerHTML = counted
+    ? `<span>სრული დღეები ამ თვეში</span><span class="num">${full} / ${counted}</span>`
+    : `<span>ამ თვეში ჩანაწერები არ არის</span><span class="num">—</span>`;
+}
+
+/* ---------- render: photos ---------- */
+function renderPhotos() {
+  $('#ph-filter').innerHTML = [['all', 'ყველა']].concat(ANG_KEYS.map(k => [k, ANG_S[k]]))
+    .map(([v, l]) => `<button data-act="filter" data-v="${v}" aria-pressed="${phFilter === v}">${l}</button>`).join('');
+  const list = S.photos.filter(p => phFilter === 'all' || p.angle === phFilter)
+    .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt);
+  $('#ph-grid').innerHTML = list.map(p =>
+    `<button class="thumb" data-act="photo" data-id="${p.id}"><img src="${urlOf(p, 't')}" alt="${ANG[p.angle]}, ${fmtDate(p.date)}" loading="lazy"><span>${dayLabel(p.date)} · ${ANG_S[p.angle]}</span></button>`).join('');
+  $('#ph-grid').hidden = list.length === 0;
+  $('#ph-empty').hidden = S.photos.length > 0;
+  const counts = {}; S.photos.forEach(p => { counts[p.angle] = (counts[p.angle] || 0) + 1; });
+  $('#ph-compare').disabled = !ANG_KEYS.some(a => (counts[a] || 0) >= 2);
+}
+
+/* ---------- render: settings ---------- */
+function renderSettings() {
+  const si = $('#s-start'); si.value = S.settings.startDate || ''; si.max = today();
+  $$('#s-per button').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.v) === S.settings.perDay)));
+  const ex = $('#s-export'), il = $('#s-import-l'), imp = $('#s-import');
+  if (inFrame) {
+    ex.disabled = true; il.setAttribute('aria-disabled', 'true'); imp.disabled = true;
+    $('#backup-note').textContent = 'საცდელ ვერსიაში ასლის შენახვა არ მუშაობს. ტელეფონზე დაყენებულ აპში იმუშავებს.';
+  }
+  $('#install-steps').innerHTML =
+    `<li><span>გახსენი აპის ბმული <b>Safari</b>-ში.</span></li>` +
+    `<li><span>დააჭირე გაზიარების ღილაკს ${I.share}</span></li>` +
+    `<li><span>აირჩიე „Add to Home Screen“ და დააჭირე „Add“.</span></li>` +
+    `<li><span>გახსენი Minox ეკრანიდან, როგორც ჩვეულებრივი აპი.</span></li>`;
+}
+
+function render() { renderToday(); renderCal(); renderPhotos(); renderSettings(); }
+
+/* ---------- views ---------- */
+function switchView(v) {
+  view = v;
+  ['today', 'cal', 'photos', 'set'].forEach(k => { $('#v-' + k).hidden = k !== v; });
+  $$('#tabs .tab').forEach(b => { if (b.dataset.v === v) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+  window.scrollTo(0, 0);
+}
+
+/* ---------- sheet ---------- */
+let closeT = 0;
+function openSheet(html, ctx) {
+  sheetCtx = ctx || null;
+  const sh = $('#sheet'), sc = $('#scrim');
+  $('#sheet-in').innerHTML = html;
+  clearTimeout(closeT);
+  if (sh.hidden || !sh.classList.contains('on')) {
+    sh.hidden = false; sc.hidden = false;
+    requestAnimationFrame(() => requestAnimationFrame(() => { sh.classList.add('on'); sc.classList.add('on'); }));
+    sh.scrollTop = 0;
+  }
+}
+function closeSheet() {
+  const sh = $('#sheet'), sc = $('#scrim');
+  sheetCtx = null;
+  sh.classList.remove('on'); sc.classList.remove('on');
+  clearTimeout(closeT);
+  closeT = setTimeout(() => { sh.hidden = true; sc.hidden = true; $('#sheet-in').innerHTML = ''; }, 300);
+}
+const angleBtns = (cur, scope) => ANG_KEYS.map(k => `<button data-act="angle" data-scope="${scope}" data-v="${k}" aria-pressed="${cur === k}">${ANG_S[k]}</button>`).join('');
+
+function openOnboard() {
+  openSheet(`<div class="grab"></div>
+    <div><p class="eyebrow">Minox</p><h3>დავიწყოთ</h3></div>
+    <p class="muted">აქ ჩაინიშნავ დოზებს, შეინახავ პროგრესის ფოტოებს და თვეების შემდეგ შეადარებ.</p>
+    <div class="field"><label class="flabel" for="ob-start">როდის დაიწყე მინოქსიდილი?</label><input type="date" id="ob-start" value="${today()}" max="${today()}"></div>
+    <div class="field"><span class="flabel">დღეში რამდენჯერ?</span><div class="seg" id="ob-per">
+      <button data-act="obper" data-v="1" aria-pressed="${obPer === 1}">ერთხელ</button><button data-act="obper" data-v="2" aria-pressed="${obPer === 2}">ორჯერ</button></div></div>
+    <button class="btn primary block" data-act="ob-go">დაწყება</button>`, { type:'onboard', locked:true });
+}
+function openDay(ds) {
+  const d = parse(ds);
+  const pics = S.photos.filter(p => p.date === ds);
+  const active = S.settings.startDate && diffDays(S.settings.startDate, ds) >= 0 && diffDays(ds, today()) >= 0;
+  openSheet(`<div class="grab"></div>
+    <div><p class="eyebrow">${WEEKDAYS[d.getDay()]} · ${dayLabel(ds)}</p><h3>${fmtDate(ds)} ${d.getFullYear()}</h3></div>
+    ${active ? `<div class="doses sm" style="--n:${slots().length}">${slots().map(k => doseTile(ds, k)).join('')}</div>` : ''}
+    ${pics.length ? `<div class="grid">${pics.map(p => `<button class="thumb" data-act="photo" data-id="${p.id}"><img src="${urlOf(p, 't')}" alt="${ANG[p.angle]}"><span>${ANG_S[p.angle]}</span></button>`).join('')}</div>` : ''}
+    <button class="btn block" data-act="close">დახურვა</button>`, { type:'day', ds });
+}
+function openAdd() {
+  openSheet(`<div class="grab"></div>
+    <h3>ახალი ფოტო</h3>
+    <ul class="tips"><li><b>01</b>იგივე ადგილი და სინათლე, რაც წინა ჯერზე</li><li><b>02</b>მშრალი თმა, ერთნაირად დავარცხნილი</li><li><b>03</b>ტელეფონი ერთ სიმაღლეზე და მანძილზე</li></ul>
+    <div class="field"><span class="flabel">კუთხე</span><div class="seg">${angleBtns(addAngle, 'add')}</div></div>
+    <div class="field"><label class="flabel" for="add-date">თარიღი</label><input type="date" id="add-date" value="${today()}" max="${today()}"></div>
+    <label class="btn primary block">${I.photo}<span>გადაიღე ან აირჩიე</span><input type="file" id="add-file" accept="image/*" multiple class="vh"></label>
+    <button class="btn ghost block" data-act="close">გაუქმება</button>`, { type:'add' });
+}
+function openPhoto(id) {
+  const p = S.photos.find(x => x.id === id); if (!p) return;
+  openSheet(`<div class="grab"></div>
+    <div class="viewer"><img src="${urlOf(p, 'f')}" alt="${ANG[p.angle]}, ${fmtDate(p.date)}"></div>
+    <div class="vmeta"><b>${dayLabel(p.date)}</b><span>${fmtDate(p.date)} ${parse(p.date).getFullYear()} · ${ANG[p.angle]}</span></div>
+    <div class="row2" id="del-row"><button class="btn danger" data-act="del-ask" data-id="${id}">წაშლა</button><button class="btn" data-act="close">დახურვა</button></div>`, { type:'photo', id });
+}
+function openCompare(reset) {
+  const counts = {}; S.photos.forEach(p => { counts[p.angle] = (counts[p.angle] || 0) + 1; });
+  if (!cmp.angle || (reset && (counts[cmp.angle] || 0) < 2)) cmp.angle = ANG_KEYS.find(a => (counts[a] || 0) >= 2) || 'front';
+  const list = S.photos.filter(p => p.angle === cmp.angle).sort((a, b) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt);
+  if (reset || !list.some(p => p.id === cmp.a) || !list.some(p => p.id === cmp.b)) {
+    cmp.a = list.length ? list[0].id : null; cmp.b = list.length ? list[list.length - 1].id : null;
+  }
+  const A = list.find(p => p.id === cmp.a), B = list.find(p => p.id === cmp.b);
+  const opts = sel => list.map(p => `<option value="${p.id}"${p.id === sel ? ' selected' : ''}>${dayLabel(p.date)} · ${fmtShort(p.date)}</option>`).join('');
+  const body = list.length < 2 || !A || !B
+    ? `<p class="muted">შედარებისთვის ამ კუთხიდან მინიმუმ 2 ფოტო გჭირდება.</p>`
+    : `<div class="pick"><label><span class="flabel">ადრე</span><select id="cmp-a">${opts(cmp.a)}</select></label><label><span class="flabel">ახლა</span><select id="cmp-b">${opts(cmp.b)}</select></label></div>
+       <div class="cmp" id="cmp" style="--p:50%"><img src="${urlOf(B, 'f')}" alt="ახლა"><img class="top" src="${urlOf(A, 'f')}" alt="ადრე"><i class="cline"></i><span class="tag l">${dayLabel(A.date)}</span><span class="tag r">${dayLabel(B.date)}</span></div>
+       <input type="range" id="cmp-range" min="0" max="100" value="50" aria-label="გადაწიე შესადარებლად">`;
+  openSheet(`<div class="grab"></div><h3>შედარება</h3><div class="seg">${angleBtns(cmp.angle, 'cmp')}</div>${body}<button class="btn block" data-act="close">დახურვა</button>`, { type:'cmp' });
+}
+function setCmp(p) {
+  p = Math.max(0, Math.min(100, p));
+  const box = $('#cmp'); if (box) box.style.setProperty('--p', p + '%');
+  const r = $('#cmp-range'); if (r && Number(r.value) !== Math.round(p)) r.value = Math.round(p);
+}
+function confirmSheet(title, text, yesLabel, yesAct) {
+  openSheet(`<div class="grab"></div><h3>${title}</h3><p class="muted">${text}</p>
+    <div class="row2"><button class="btn danger" data-act="${yesAct}">${yesLabel}</button><button class="btn" data-act="close">გაუქმება</button></div>`, { type:'confirm' });
+}
+
+/* ---------- actions ---------- */
+async function saveSettings() { try { await store.put('kv', Object.assign({}, S.settings), 'settings'); } catch (e) { console.warn(e); } }
+async function toggleDose(ds, k) {
+  const r = Object.assign({}, S.doses[ds] || {});
+  if (r[k]) delete r[k]; else r[k] = ds === today() ? nowTime() : '~';
+  try {
+    if (Object.keys(r).length) { S.doses[ds] = r; await store.put('doses', r, ds); }
+    else { delete S.doses[ds]; await store.del('doses', ds); }
+  } catch (e) { toast('ვერ შეინახა'); }
+  render();
+  if (sheetCtx && sheetCtx.type === 'day') openDay(sheetCtx.ds);
+}
+function loadImage(blob) {
+  return new Promise((res, rej) => {
+    const u = URL.createObjectURL(blob), img = new Image();
+    img.onload = () => res({ img, u });
+    img.onerror = () => { URL.revokeObjectURL(u); rej(new Error('image')); };
+    img.src = u;
+  });
+}
+function scaleTo(img, max, q) {
+  const w0 = img.naturalWidth, h0 = img.naturalHeight, s = Math.min(1, max / Math.max(w0, h0));
+  const w = Math.max(1, Math.round(w0 * s)), h = Math.max(1, Math.round(h0 * s));
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  c.getContext('2d').drawImage(img, 0, 0, w, h);
+  return new Promise((res, rej) => c.toBlob(b => b ? res({ blob:b, w, h }) : rej(new Error('blob')), 'image/jpeg', q));
+}
+async function processImage(file, keepOriginal) {
+  const { img, u } = await loadImage(file);
+  try {
+    const full = keepOriginal ? { blob:file, w:img.naturalWidth, h:img.naturalHeight } : await scaleTo(img, 1600, 0.86);
+    const thumb = await scaleTo(img, 420, 0.8);
+    return { blob:full.blob, thumb:thumb.blob, w:full.w, h:full.h };
+  } finally { URL.revokeObjectURL(u); }
+}
+async function addFiles(files) {
+  let date = ($('#add-date') && $('#add-date').value) || today();
+  if (!isYmd(date) || diffDays(date, today()) < 0) date = today();
+  const angle = addAngle;
+  closeSheet(); toast('ფოტო მუშავდება…');
+  let ok = 0;
+  for (const f of files) {
+    try {
+      const r = await processImage(f, false);
+      const rec = { date, angle, blob:r.blob, thumb:r.thumb, w:r.w, h:r.h, createdAt:Date.now() + ok };
+      const id = await store.put('photos', rec);
+      rec.id = id; S.photos.push(rec); ok++;
+    } catch (e) { console.warn(e); }
+  }
+  phFilter = 'all';
+  render();
+  toast(ok ? (ok === 1 ? 'ფოტო შენახულია' : `${ok} ფოტო შენახულია`) : 'ფოტო ვერ შეინახა. სცადე სხვა ფოტო.');
+  if (ok) switchView('photos');
+}
+async function deletePhoto(id) {
+  try { await store.del('photos', id); } catch (e) { toast('ვერ წაიშალა'); return; }
+  S.photos = S.photos.filter(p => p.id !== id); dropURL(id);
+  closeSheet(); render(); toast('ფოტო წაიშალა');
+}
+function blobToDataURL(b) {
+  return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsDataURL(b); });
+}
+async function exportData() {
+  if (inFrame) { toast('საცდელ ვერსიაში არ მუშაობს'); return; }
+  toast('ასლი მზადდება…');
+  try {
+    const photos = [];
+    for (const p of S.photos) photos.push({ date:p.date, angle:p.angle, w:p.w, h:p.h, createdAt:p.createdAt, data:await blobToDataURL(p.blob) });
+    const payload = { app:'minox', v:1, exportedAt:new Date().toISOString(),
+      settings:{ startDate:S.settings.startDate, perDay:S.settings.perDay }, doses:S.doses, photos };
+    const name = `minox-${today()}.json`;
+    const file = new File([JSON.stringify(payload)], name, { type:'application/json' });
+    if (navigator.canShare && navigator.canShare({ files:[file] })) {
+      try { await navigator.share({ files:[file], title:'Minox ასლი' }); toast('ასლი გაზიარდა'); return; }
+      catch (e) { if (e && e.name === 'AbortError') return; }
+    }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 5000);
+    toast('ფაილი ჩამოიტვირთა');
+  } catch (e) { console.warn(e); toast('ასლი ვერ შეიქმნა'); }
+}
+let pendingImport = null;
+async function readImport(file) {
+  try {
+    const data = JSON.parse(await file.text());
+    if (!data || data.app !== 'minox' || typeof data.doses !== 'object') throw new Error('format');
+    pendingImport = data;
+    const nd = Object.keys(data.doses || {}).length, np = Array.isArray(data.photos) ? data.photos.length : 0;
+    confirmSheet('აღვადგინო ასლიდან?', `ფაილში არის ${nd} დღის ჩანაწერი და ${np} ფოტო. ამჟამინდელი მონაცემები ჩანაცვლდება.`, 'აღდგენა', 'import-yes');
+  } catch (e) { toast('ეს ფაილი Minox-ის ასლი არ არის'); }
+}
+async function restore(data) {
+  closeSheet(); toast('აღდგენა მიმდინარეობს…');
+  try {
+    await store.clear('doses'); await store.clear('photos');
+    S.doses = {}; urls.forEach((_, id) => dropURL(id)); S.photos = [];
+    if (data.settings) {
+      if (isYmd(data.settings.startDate)) S.settings.startDate = data.settings.startDate;
+      if (data.settings.perDay === 1 || data.settings.perDay === 2) S.settings.perDay = data.settings.perDay;
+      await saveSettings();
+    }
+    for (const [k, v] of Object.entries(data.doses || {})) {
+      if (!isYmd(k) || !v) continue;
+      const r = {}; if (v.m) r.m = String(v.m).slice(0, 5); if (v.e) r.e = String(v.e).slice(0, 5);
+      if (r.m || r.e) { S.doses[k] = r; await store.put('doses', r, k); }
+    }
+    for (const p of (Array.isArray(data.photos) ? data.photos : [])) {
+      if (!isYmd(p.date) || !ANG[p.angle] || typeof p.data !== 'string' || !p.data.startsWith('data:image/')) continue;
+      try {
+        const blob = await (await fetch(p.data)).blob();
+        const r = await processImage(blob, true);
+        const rec = { date:p.date, angle:p.angle, blob:r.blob, thumb:r.thumb, w:r.w, h:r.h, createdAt:Number(p.createdAt) || Date.now() };
+        rec.id = await store.put('photos', rec); S.photos.push(rec);
+      } catch (e) { console.warn(e); }
+    }
+    render(); toast('აღდგენილია');
+  } catch (e) { console.warn(e); toast('აღდგენა ვერ მოხერხდა'); }
+}
+async function resetAll() {
+  closeSheet();
+  try { await store.clear('doses'); await store.clear('photos'); await store.clear('kv'); } catch (e) { console.warn(e); }
+  urls.forEach((_, id) => dropURL(id));
+  S.doses = {}; S.photos = []; S.settings = { startDate:null, perDay:2, hintDismissed:false };
+  render(); switchView('today'); toast('ყველაფერი წაიშალა');
+  setTimeout(openOnboard, 350);
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  if (el.disabled || el.getAttribute('aria-disabled') === 'true') return;
+  const a = el.dataset.act, v = el.dataset.v;
+  switch (a) {
+    case 'tab': switchView(v); break;
+    case 'dose': toggleDose(el.dataset.date, el.dataset.slot); break;
+    case 'nudge': if (el.dataset.due) { switchView('photos'); openAdd(); } else switchView('photos'); break;
+    case 'hint-x': S.settings.hintDismissed = true; saveSettings(); renderToday(); break;
+    case 'cal-prev': cal.m--; if (cal.m < 0) { cal.m = 11; cal.y--; } renderCal(); break;
+    case 'cal-next': cal.m++; if (cal.m > 11) { cal.m = 0; cal.y++; } renderCal(); break;
+    case 'day': openDay(el.dataset.date); break;
+    case 'add': openAdd(); break;
+    case 'compare': openCompare(true); break;
+    case 'filter': phFilter = v; renderPhotos(); break;
+    case 'angle':
+      if (el.dataset.scope === 'add') { addAngle = v; $$('[data-scope="add"]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === v))); }
+      else { cmp.angle = v; openCompare(false); }
+      break;
+    case 'photo': openPhoto(Number(el.dataset.id)); break;
+    case 'del-ask':
+      $('#del-row').innerHTML = `<button class="btn danger" data-act="del-yes" data-id="${el.dataset.id}">დიახ, წაშალე</button><button class="btn" data-act="del-no" data-id="${el.dataset.id}">გაუქმება</button>`;
+      break;
+    case 'del-yes': deletePhoto(Number(el.dataset.id)); break;
+    case 'del-no': openPhoto(Number(el.dataset.id)); break;
+    case 'per': S.settings.perDay = Number(v) === 1 ? 1 : 2; saveSettings(); render(); toast('შენახულია'); break;
+    case 'export': exportData(); break;
+    case 'reset': confirmSheet('წავშალო ყველაფერი?', 'ყველა ჩანაწერი და ფოტო წაიშლება ამ ტელეფონიდან. ამის დაბრუნება შეუძლებელია, თუ ასლი არ გაქვს შენახული.', 'წაშლა', 'reset-yes'); break;
+    case 'reset-yes': resetAll(); break;
+    case 'import-yes': if (pendingImport) { const d = pendingImport; pendingImport = null; restore(d); } break;
+    case 'obper': obPer = Number(v) === 1 ? 1 : 2; $$('#ob-per button').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.v) === obPer))); break;
+    case 'ob-go': {
+      let st = $('#ob-start').value; if (!isYmd(st)) st = today();
+      S.settings.startDate = st; S.settings.perDay = obPer;
+      saveSettings(); closeSheet(); render(); toast('დაიწყო! დღე ' + Math.max(1, dayN(today())));
+      try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (err) {}
+      break;
+    }
+    case 'close': closeSheet(); break;
+  }
+});
+$('#scrim').addEventListener('click', () => { if (!(sheetCtx && sheetCtx.locked)) closeSheet(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#sheet').hidden && !(sheetCtx && sheetCtx.locked)) closeSheet(); });
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.id === 'add-file' && t.files && t.files.length) addFiles(Array.from(t.files));
+  else if (t.id === 's-start' && isYmd(t.value)) { S.settings.startDate = t.value; saveSettings(); render(); toast('შენახულია'); }
+  else if (t.id === 's-import' && t.files && t.files[0]) { readImport(t.files[0]); t.value = ''; }
+  else if (t.id === 'cmp-a') { cmp.a = Number(t.value); openCompare(false); }
+  else if (t.id === 'cmp-b') { cmp.b = Number(t.value); openCompare(false); }
+});
+document.addEventListener('input', e => { if (e.target.id === 'cmp-range') setCmp(Number(e.target.value)); });
+let dragging = false;
+function cmpFromEvent(e) { const box = $('#cmp'); if (!box) return; const r = box.getBoundingClientRect(); setCmp((e.clientX - r.left) / r.width * 100); }
+document.addEventListener('pointerdown', e => { if (e.target.closest('#cmp')) { dragging = true; try { e.target.closest('#cmp').setPointerCapture(e.pointerId); } catch (err) {} cmpFromEvent(e); } });
+document.addEventListener('pointermove', e => { if (dragging) cmpFromEvent(e); });
+document.addEventListener('pointerup', () => { dragging = false; });
+document.addEventListener('pointercancel', () => { dragging = false; });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') render(); });
+
+/* ---------- static icons ---------- */
+$$('[data-ico]').forEach(i => { i.outerHTML = I[i.dataset.ico]; });
+$('#cal-prev').innerHTML = I.chevL; $('#cal-next').innerHTML = I.chev;
+$('[data-act="add"]').innerHTML = `${I.add}<span>ფოტოს დამატება</span>`;
+$('#ph-compare').innerHTML = `${I.split}<span>შედარება</span>`;
+
+/* ---------- demo data for the preview inside Claude ---------- */
+function seedDemo() {
+  const t = today();
+  S.settings.startDate = addDays(t, -46); S.settings.perDay = 2; S.settings.hintDismissed = true;
+  const missE = new Set([5, 13, 22, 30, 38]), missBoth = new Set([17, 33]);
+  for (let i = 0; i < 46; i++) {
+    if (missBoth.has(i)) continue;
+    const r = { m:`0${7 + (i % 3)}:${pad((i * 7) % 60)}` };
+    if (!missE.has(i)) r.e = `${21 + (i % 2)}:${pad((i * 13) % 60)}`;
+    S.doses[addDays(S.settings.startDate, i)] = r;
+  }
+  S.doses[t] = { m:'08:40' };
+  const pn = $('#preview-note'); pn.hidden = false;
+  pn.innerHTML = `${I.info}<p><b>საცდელი ვერსია.</b> აქ მაგალითის მონაცემებია და არაფერი ინახება. შენს ჩანაწერებს ტელეფონზე დაყენებული აპი შეინახავს.</p>`;
+}
+
+/* ---------- boot ---------- */
+async function init() {
+  if (inFrame) { seedDemo(); }
+  else {
+    idb = await openDB();
+    if (!idb) {
+      const w = $('#store-warn'); w.hidden = false;
+      w.innerHTML = `${I.info}<p><b>მონაცემები ვერ შეინახება.</b> გამორთე Private რეჟიმი Safari-ში ან გახსენი აპი Home Screen-იდან.</p>`;
+    } else {
+      try {
+        for (const [k, v] of await store.entries('kv')) if (k === 'settings' && v) Object.assign(S.settings, v);
+        for (const [k, v] of await store.entries('doses')) S.doses[k] = v;
+        S.photos = (await store.entries('photos')).map(([, v]) => v);
+      } catch (e) { console.warn(e); }
+    }
+  }
+  render(); switchView('today');
+  if (!S.settings.startDate) openOnboard();
+  if (!inFrame && 'serviceWorker' in navigator && location.protocol === 'https:') {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+}
+init();
+})();
+</script>
+</body>
+</html>
